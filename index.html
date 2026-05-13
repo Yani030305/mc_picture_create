@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft 64×64 / 720×720 贴图转换器</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --bg: #2d1f14;
+      --panel: #24180f;
+      --panel2: #3d2817;
+      --border: #5c4033;
+      --accent: #9acd32;
+      --text2: #d8c7a8;
+      --danger: #b04a3c;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: #fff;
+      font-family: "Courier New", "Microsoft YaHei", monospace;
+    }
+
+    .container {
+      max-width: 1360px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 18px;
+      background: linear-gradient(180deg, #5a3d28 0%, #24180f 100%);
+      border: 4px solid var(--border);
+      box-shadow:
+        inset 4px 4px 0 rgba(255,255,255,0.08),
+        inset -4px -4px 0 rgba(0,0,0,0.35),
+        0 6px 14px rgba(0,0,0,0.45);
+    }
+
+    .header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      color: #f8e6b0;
+      text-shadow: 3px 3px 0 #000;
+    }
+
+    .header p {
+      margin: 4px 0;
+      color: var(--text2);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 4px solid var(--border);
+      padding: 16px;
+      box-shadow:
+        inset 3px 3px 0 rgba(255,255,255,0.06),
+        inset -3px -3px 0 rgba(0,0,0,0.28),
+        0 5px 12px rgba(0,0,0,0.4);
+    }
+
+    .panel-title {
+      margin: -16px -16px 16px;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, #6b4d35 0%, #3b291b 100%);
+      border-bottom: 3px solid #1a120a;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #fff3c4;
+      text-shadow: 2px 2px 0 #000;
+      font-size: 15px;
+    }
+
+    .image-box {
+      min-height: 300px;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #ddd;
+      background-image:
+        linear-gradient(45deg, #c5c5c5 25%, transparent 25%),
+        linear-gradient(-45deg, #c5c5c5 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #c5c5c5 75%),
+        linear-gradient(-45deg, transparent 75%, #c5c5c5 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      border: 3px solid #3c2a1c;
+    }
+
+    .upload-area {
+      width: 100%;
+      min-height: 240px;
+      border: 4px dashed var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #3d2817;
+      background: rgba(255,255,255,0.35);
+      cursor: pointer;
+      text-align: center;
+      padding: 20px;
+      transition: 0.12s;
+    }
+
+    .upload-area:hover,
+    .upload-area.dragover {
+      border-color: #6b8e23;
+      background: rgba(154,205,50,0.25);
+    }
+
+    #originalImage {
+      max-width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+    }
+
+    .preview-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .small-preview-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #3d2817;
+      font-size: 12px;
+      font-weight: 700;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .small-wrap {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      background-color: #ddd;
+      background-image:
+        linear-gradient(45deg, #c5c5c5 25%, transparent 25%),
+        linear-gradient(-45deg, #c5c5c5 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #c5c5c5 75%),
+        linear-gradient(-45deg, transparent 75%, #c5c5c5 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .large-preview-label {
+      color: #3d2817;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .large-preview-wrap {
+      position: relative;
+      width: 420px;
+      height: 420px;
+      background-color: #ddd;
+      background-image:
+        linear-gradient(45deg, #c5c5c5 25%, transparent 25%),
+        linear-gradient(-45deg, #c5c5c5 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #c5c5c5 75%),
+        linear-gradient(-45deg, transparent 75%, #c5c5c5 75%);
+      background-size: 28px 28px;
+      background-position: 0 0, 0 14px, 14px -14px, -14px 0;
+      border: 4px solid var(--border);
+      box-shadow: 0 5px 10px rgba(0,0,0,0.45);
+      overflow: hidden;
+    }
+
+    #outputCanvas {
+      width: 64px;
+      height: 64px;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    #previewCanvas,
+    #gridCanvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 420px;
+      height: 420px;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    #gridCanvas {
+      pointer-events: none;
+      display: none;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .btn {
+      background: linear-gradient(180deg, #7ba92f 0%, #5f8424 45%, #4b651d 100%);
+      color: #fff;
+      border: 3px solid #334915;
+      padding: 10px 18px;
+      font-family: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      text-shadow: 1px 1px 0 #000;
+      box-shadow:
+        inset 2px 2px 0 rgba(255,255,255,0.25),
+        inset -2px -2px 0 rgba(0,0,0,0.3),
+        0 4px 0 #22310f;
+    }
+
+    .btn:hover { filter: brightness(1.08); }
+
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow:
+        inset 2px 2px 0 rgba(0,0,0,0.3),
+        inset -2px -2px 0 rgba(255,255,255,0.18),
+        0 2px 0 #22310f;
+    }
+
+    .btn:disabled {
+      background: #555;
+      border-color: #333;
+      cursor: not-allowed;
+      box-shadow: none;
+      opacity: 0.55;
+    }
+
+    .danger-btn {
+      background: linear-gradient(180deg, var(--danger) 0%, #8b342a 45%, #64231d 100%);
+      border-color: #4b1612;
+      box-shadow:
+        inset 2px 2px 0 rgba(255,255,255,0.18),
+        inset -2px -2px 0 rgba(0,0,0,0.3),
+        0 4px 0 #35100d;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .info-item {
+      background: var(--panel2);
+      border: 2px solid var(--border);
+      padding: 9px;
+    }
+
+    .info-label {
+      color: #b7a48a;
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .info-value {
+      color: var(--accent);
+      font-size: 16px;
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    .warning { color: #ff6565 !important; }
+    .ok { color: var(--accent) !important; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .control-item {
+      background: var(--panel2);
+      border: 2px solid var(--border);
+      padding: 12px;
+    }
+
+    .control-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #e0d0b5;
+      font-size: 13px;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="range"] { flex: 1; }
+    select, input[type="checkbox"] { cursor: pointer; }
+
+    .range-value {
+      min-width: 52px;
+      text-align: right;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    select {
+      width: 100%;
+      padding: 8px;
+      background: #1a120a;
+      border: 2px solid var(--border);
+      color: #fff;
+      font-family: inherit;
+    }
+
+    .hint {
+      margin-top: 8px;
+      color: #a89375;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 980px) {
+      .main-content,
+      .controls,
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .large-preview-wrap {
+        width: 320px;
+        height: 320px;
+      }
+
+      #previewCanvas,
+      #gridCanvas {
+        width: 320px;
+        height: 320px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Minecraft 64×64 / 720×720 贴图转换器</h1>
+      <p>上传图片 → 去背景 → 裁剪主体 → 缩放到 64×64 → Alpha 二值化 → 色彩量化 → 像素块化</p>
+      <p>下载两个版本：<strong>64×64 贴图</strong>（给 MC 用） 和 <strong>720×720 像素版</strong>（给预览/展示用）</p>
+      <p>说明：720 不能被 64 整除，所以 720 版会把 64×64 内容按 <strong>11 倍</strong>放大为 <strong>704×704</strong>，再居中放到 <strong>720×720</strong> 透明画布中，四周各留 <strong>8px</strong> 透明边。</p>
+    </div>
+
+    <div class="main-content">
+      <div class="panel">
+        <div class="panel-title">① 上传原图</div>
+
+        <div class="image-box" id="uploadArea">
+          <div class="upload-area" id="dropZone">
+            <strong>点击或拖拽图片到这里</strong>
+            <p>支持 PNG / JPG / WEBP / GIF</p>
+            <p style="font-size: 12px;">建议上传单个食物主体，背景越简单越好</p>
+          </div>
+          <img id="originalImage" class="hidden" alt="原图预览" />
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">原图尺寸</div>
+            <div class="info-value" id="originalSize">-- × --</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">输出真实尺寸</div>
+            <div class="info-value" id="realOutputSize">64 × 64</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">720版最终尺寸</div>
+            <div class="info-value" id="final720Size">720 × 720</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">非透明颜色数</div>
+            <div class="info-value" id="solidColorCount">--</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">非透明像素</div>
+            <div class="info-value" id="solidPixelCount">--</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">半透明像素数</div>
+            <div class="info-value" id="semiAlphaCount">--</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">透明背景检查</div>
+            <div class="info-value" id="alphaCheck">--</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">720版内容区域</div>
+            <div class="info-value">704 × 704（8px边距）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">② 输出预览</div>
+
+        <div class="image-box">
+          <div class="preview-stack">
+            <div class="small-preview-row">
+              <span>真实 64×64：</span>
+              <div class="small-wrap">
+                <canvas id="outputCanvas" width="64" height="64"></canvas>
+              </div>
+            </div>
+
+            <div class="large-preview-label">720×720 最终效果预览（缩略显示）</div>
+            <div class="large-preview-wrap">
+              <canvas id="previewCanvas" width="720" height="720"></canvas>
+              <canvas id="gridCanvas" width="720" height="720"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn" id="downloadBtn" disabled>下载 64×64 PNG</button>
+          <button class="btn" id="download720Btn" disabled>下载 720×720 像素版</button>
+          <button class="btn" id="reprocessBtn" disabled>重新处理</button>
+          <button class="btn" id="toggleGridBtn" disabled>显示/隐藏网格</button>
+          <button class="btn danger-btn" id="resetBtn">重置</button>
+        </div>
+
+        <div class="hint">
+          小图是真实 64×64。大图是 720×720 最终效果的缩略预览。<br />
+          64×64 用于上传到 Minecraft；720×720 用于展示、发图、看起来不糊。
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">③ 处理参数</div>
+
+      <div class="controls">
+        <div class="control-item">
+          <label class="control-label">
+            背景亮度阈值：<span class="range-value" id="bgThresholdValue">220</span>
+          </label>
+          <div class="range-row">
+            <input type="range" id="bgThreshold" min="150" max="255" value="220" />
+          </div>
+          <div class="hint">越低，越容易删除浅灰/白色背景。只从边缘 flood fill 删除。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            背景饱和度阈值：<span class="range-value" id="satThresholdValue">0.22</span>
+          </label>
+          <div class="range-row">
+            <input type="range" id="satThreshold" min="0" max="100" value="22" />
+          </div>
+          <div class="hint">越高，越容易把低饱和背景删掉。适合灰白棋盘格。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            安全边距：<span class="range-value" id="paddingValue">3 px</span>
+          </label>
+          <div class="range-row">
+            <input type="range" id="padding" min="0" max="12" value="3" />
+          </div>
+          <div class="hint">避免主体贴边。推荐 2–5 px。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            Alpha 二值化阈值：<span class="range-value" id="alphaThresholdValue">128</span>
+          </label>
+          <div class="range-row">
+            <input type="range" id="alphaThreshold" min="1" max="254" value="128" />
+          </div>
+          <div class="hint">低于阈值设为透明，高于阈值设为不透明。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">像素块大小 Blockify</label>
+          <select id="blockSizeSelect">
+            <option value="1">1×1：保留 64×64 原像素</option>
+            <option value="2">2×2：轻度色块化</option>
+            <option value="4" selected>4×4：推荐，强制色块化</option>
+            <option value="8">8×8：极简图标风</option>
+          </select>
+          <div class="hint">2×2 或 4×4 更接近“一个格子一个纯色块”的视觉效果。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            <input type="checkbox" id="removeBg" checked />
+            删除边缘背景
+          </label>
+          <div class="hint">若原图本身已透明，也可以关闭。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            <input type="checkbox" id="hardAlpha" checked />
+            强制 Alpha 二值化
+          </label>
+          <div class="hint">建议开启，避免半透明脏边。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            <input type="checkbox" id="colorQuantize" checked />
+            色彩量化
+          </label>
+          <select id="colorCountSelect">
+            <option value="8">8 色</option>
+            <option value="16" selected>16 色</option>
+            <option value="24">24 色</option>
+            <option value="32">32 色</option>
+            <option value="64">64 色</option>
+          </select>
+          <div class="hint">颜色越少越像贴图，但细节会损失。</div>
+        </div>
+
+        <div class="control-item">
+          <label class="control-label">
+            <input type="checkbox" id="transparentWhite" />
+            额外删除纯白边缘
+          </label>
+          <div class="hint">白边残留严重时可开启。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="fileInput" class="hidden" accept="image/*" />
+
+  <script>
+    let originalImage = null;
+    let originalFileName = "texture";
+    let showGrid = false;
+
+    const fileInput = document.getElementById("fileInput");
+    const dropZone = document.getElementById("dropZone");
+    const originalImg = document.getElementById("originalImage");
+
+    const outputCanvas = document.getElementById("outputCanvas");
+    const ctx = outputCanvas.getContext("2d", { willReadFrequently: true });
+
+    const previewCanvas = document.getElementById("previewCanvas");
+    const previewCtx = previewCanvas.getContext("2d", { willReadFrequently: true });
+
+    const gridCanvas = document.getElementById("gridCanvas");
+    const gridCtx = gridCanvas.getContext("2d");
+
+    const downloadBtn = document.getElementById("downloadBtn");
+    const download720Btn = document.getElementById("download720Btn");
+    const reprocessBtn = document.getElementById("reprocessBtn");
+    const toggleGridBtn = document.getElementById("toggleGridBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const bgThreshold = document.getElementById("bgThreshold");
+    const satThreshold = document.getElementById("satThreshold");
+    const paddingInput = document.getElementById("padding");
+    const alphaThreshold = document.getElementById("alphaThreshold");
+
+    const removeBg = document.getElementById("removeBg");
+    const hardAlpha = document.getElementById("hardAlpha");
+    const colorQuantize = document.getElementById("colorQuantize");
+    const colorCountSelect = document.getElementById("colorCountSelect");
+    const transparentWhite = document.getElementById("transparentWhite");
+    const blockSizeSelect = document.getElementById("blockSizeSelect");
+
+    const bgThresholdValue = document.getElementById("bgThresholdValue");
+    const satThresholdValue = document.getElementById("satThresholdValue");
+    const paddingValue = document.getElementById("paddingValue");
+    const alphaThresholdValue = document.getElementById("alphaThresholdValue");
+
+    const originalSize = document.getElementById("originalSize");
+    const realOutputSize = document.getElementById("realOutputSize");
+    const solidPixelCount = document.getElementById("solidPixelCount");
+    const solidColorCount = document.getElementById("solidColorCount");
+    const semiAlphaCount = document.getElementById("semiAlphaCount");
+    const alphaCheck = document.getElementById("alphaCheck");
+
+    setSmoothing(ctx, false);
+    setSmoothing(previewCtx, false);
+    clearOutput();
+
+    function bindRange(input, label, formatter = v => v) {
+      input.addEventListener("input", () => {
+        label.textContent = formatter(input.value);
+      });
+    }
+
+    bindRange(bgThreshold, bgThresholdValue);
+    bindRange(satThreshold, satThresholdValue, v => (Number(v) / 100).toFixed(2));
+    bindRange(paddingInput, paddingValue, v => `${v} px`);
+    bindRange(alphaThreshold, alphaThresholdValue);
+
+    colorQuantize.addEventListener("change", () => {
+      colorCountSelect.disabled = !colorQuantize.checked;
+      if (originalImage) processImage();
+    });
+
+    [
+      bgThreshold,
+      satThreshold,
+      paddingInput,
+      alphaThreshold,
+      removeBg,
+      hardAlpha,
+      colorCountSelect,
+      transparentWhite,
+      blockSizeSelect
+    ].forEach(el => {
+      el.addEventListener("change", () => {
+        if (originalImage) processImage();
+      });
+    });
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", e => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) loadImage(file);
+    });
+
+    fileInput.addEventListener("change", e => {
+      const file = e.target.files && e.target.files[0];
+      if (file) loadImage(file);
+    });
+
+    downloadBtn.addEventListener("click", download64Image);
+    download720Btn.addEventListener("click", download720Image);
+    reprocessBtn.addEventListener("click", processImage);
+
+    toggleGridBtn.addEventListener("click", () => {
+      showGrid = !showGrid;
+      gridCanvas.style.display = showGrid ? "block" : "none";
+      if (showGrid) drawGridOverlay();
+    });
+
+    resetBtn.addEventListener("click", resetAll);
+
+    function loadImage(file) {
+      if (!file.type.startsWith("image/")) {
+        alert("请上传图片文件。");
+        return;
+      }
+
+      originalFileName = file.name.replace(/\.[^/.]+$/, "") || "texture";
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          originalImage = img;
+          originalImg.src = img.src;
+          originalImg.classList.remove("hidden");
+          dropZone.classList.add("hidden");
+          originalSize.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
+          processImage();
+        };
+        img.onerror = () => alert("图片读取失败，请换一张图。");
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function processImage() {
+      if (!originalImage) return;
+
+      outputCanvas.width = 64;
+      outputCanvas.height = 64;
+      previewCanvas.width = 720;
+      previewCanvas.height = 720;
+      gridCanvas.width = 720;
+      gridCanvas.height = 720;
+
+      setSmoothing(ctx, false);
+      setSmoothing(previewCtx, false);
+
+      ctx.clearRect(0, 0, 64, 64);
+      previewCtx.clearRect(0, 0, 720, 720);
+      gridCtx.clearRect(0, 0, 720, 720);
+
+      const sourceCanvas = document.createElement("canvas");
+      sourceCanvas.width = originalImage.naturalWidth;
+      sourceCanvas.height = originalImage.naturalHeight;
+      const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+      setSmoothing(sourceCtx, false);
+      sourceCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      sourceCtx.drawImage(originalImage, 0, 0);
+
+      let imageData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
+
+      if (removeBg.checked) {
+        floodFillRemoveBackground(
+          imageData,
+          sourceCanvas.width,
+          sourceCanvas.height,
+          Number(bgThreshold.value),
+          Number(satThreshold.value) / 100,
+          transparentWhite.checked
+        );
+        sourceCtx.putImageData(imageData, 0, 0);
+      }
+
+      const bounds = findNonTransparentBounds(imageData, sourceCanvas.width, sourceCanvas.height);
+
+      if (!bounds) {
+        clearOutput();
+        alert("没有找到主体。请降低背景阈值，或关闭背景删除后重试。");
+        return;
+      }
+
+      const croppedCanvas = document.createElement("canvas");
+      croppedCanvas.width = bounds.width;
+      croppedCanvas.height = bounds.height;
+      const croppedCtx = croppedCanvas.getContext("2d", { willReadFrequently: true });
+      setSmoothing(croppedCtx, false);
+
+      croppedCtx.drawImage(
+        sourceCanvas,
+        bounds.x,
+        bounds.y,
+        bounds.width,
+        bounds.height,
+        0,
+        0,
+        bounds.width,
+        bounds.height
+      );
+
+      const padding = Number(paddingInput.value);
+      const targetArea = Math.max(1, 64 - padding * 2);
+
+      const scale = Math.min(
+        targetArea / croppedCanvas.width,
+        targetArea / croppedCanvas.height
+      );
+
+      const scaledWidth = Math.max(1, Math.round(croppedCanvas.width * scale));
+      const scaledHeight = Math.max(1, Math.round(croppedCanvas.height * scale));
+      const offsetX = Math.round((64 - scaledWidth) / 2);
+      const offsetY = Math.round((64 - scaledHeight) / 2);
+
+      ctx.clearRect(0, 0, 64, 64);
+      ctx.drawImage(
+        croppedCanvas,
+        0,
+        0,
+        croppedCanvas.width,
+        croppedCanvas.height,
+        offsetX,
+        offsetY,
+        scaledWidth,
+        scaledHeight
+      );
+
+      let finalData = ctx.getImageData(0, 0, 64, 64);
+
+      if (hardAlpha.checked) {
+        normalizeAlpha(finalData, Number(alphaThreshold.value));
+      }
+
+      if (colorQuantize.checked) {
+        quantizeColors(finalData, Number(colorCountSelect.value));
+      }
+
+      const blockSize = Number(blockSizeSelect.value);
+      blockifyImageData(finalData, blockSize);
+
+      if (hardAlpha.checked) {
+        normalizeAlpha(finalData, Number(alphaThreshold.value));
+      }
+
+      ctx.putImageData(finalData, 0, 0);
+
+      update720PreviewCanvas();
+      if (showGrid) drawGridOverlay();
+      updateStats();
+
+      downloadBtn.disabled = false;
+      download720Btn.disabled = false;
+      reprocessBtn.disabled = false;
+      toggleGridBtn.disabled = false;
+    }
+
+    function update720PreviewCanvas() {
+      previewCanvas.width = 720;
+      previewCanvas.height = 720;
+      setSmoothing(previewCtx, false);
+      previewCtx.clearRect(0, 0, 720, 720);
+
+      const scale = 11;
+      const innerSize = 64 * scale; // 704
+      const offset = (720 - innerSize) / 2; // 8
+
+      previewCtx.drawImage(
+        outputCanvas,
+        0,
+        0,
+        64,
+        64,
+        offset,
+        offset,
+        innerSize,
+        innerSize
+      );
+    }
+
+    function drawGridOverlay() {
+      gridCtx.clearRect(0, 0, 720, 720);
+
+      const offset = 8;
+      const step = 11;
+      const size = 704;
+
+      gridCtx.strokeStyle = "rgba(0,0,0,0.22)";
+      gridCtx.lineWidth = 1;
+
+      // 外框
+      gridCtx.strokeRect(offset + 0.5, offset + 0.5, size, size);
+
+      // 64×64 网格
+      gridCtx.beginPath();
+      for (let i = 0; i <= 64; i++) {
+        const p = offset + i * step + 0.5;
+        gridCtx.moveTo(p, offset);
+        gridCtx.lineTo(p, offset + size);
+
+        gridCtx.moveTo(offset, p);
+        gridCtx.lineTo(offset + size, p);
+      }
+      gridCtx.stroke();
+
+      // 标一下透明边距范围
+      gridCtx.strokeStyle = "rgba(255,80,80,0.35)";
+      gridCtx.lineWidth = 2;
+      gridCtx.strokeRect(0.5, 0.5, 719, 719);
+    }
+
+    function setSmoothing(canvasCtx, enabled) {
+      canvasCtx.imageSmoothingEnabled = enabled;
+      canvasCtx.webkitImageSmoothingEnabled = enabled;
+      canvasCtx.mozImageSmoothingEnabled = enabled;
+      canvasCtx.msImageSmoothingEnabled = enabled;
+    }
+
+    function clearOutput() {
+      outputCanvas.width = 64;
+      outputCanvas.height = 64;
+      previewCanvas.width = 720;
+      previewCanvas.height = 720;
+      gridCanvas.width = 720;
+      gridCanvas.height = 720;
+
+      setSmoothing(ctx, false);
+      setSmoothing(previewCtx, false);
+
+      ctx.clearRect(0, 0, 64, 64);
+      previewCtx.clearRect(0, 0, 720, 720);
+      gridCtx.clearRect(0, 0, 720, 720);
+
+      realOutputSize.textContent = "64 × 64";
+      solidPixelCount.textContent = "--";
+      solidColorCount.textContent = "--";
+      semiAlphaCount.textContent = "--";
+      alphaCheck.textContent = "--";
+      alphaCheck.className = "info-value";
+    }
+
+    function resetAll() {
+      originalImage = null;
+      originalFileName = "texture";
+      showGrid = false;
+      fileInput.value = "";
+
+      originalImg.src = "";
+      originalImg.classList.add("hidden");
+      dropZone.classList.remove("hidden");
+
+      originalSize.textContent = "-- × --";
+
+      clearOutput();
+
+      downloadBtn.disabled = true;
+      download720Btn.disabled = true;
+      reprocessBtn.disabled = true;
+      toggleGridBtn.disabled = true;
+      gridCanvas.style.display = "none";
+    }
+
+    function floodFillRemoveBackground(imageData, width, height, threshold, saturationThreshold, extraWhiteMode) {
+      const data = imageData.data;
+      const visited = new Uint8Array(width * height);
+      const queue = [];
+
+      for (let x = 0; x < width; x++) {
+        queue.push([x, 0]);
+        queue.push([x, height - 1]);
+      }
+      for (let y = 0; y < height; y++) {
+        queue.push([0, y]);
+        queue.push([width - 1, y]);
+      }
+
+      while (queue.length > 0) {
+        const [x, y] = queue.pop();
+        if (x < 0 || x >= width || y < 0 || y >= height) continue;
+
+        const pos = y * width + x;
+        if (visited[pos]) continue;
+        visited[pos] = 1;
+
+        const i = pos * 4;
+        const a = data[i + 3];
+
+        if (a === 0) {
+          pushNeighbors(queue, x, y);
+          continue;
+        }
+
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        if (isBackgroundColor(r, g, b, a, threshold, saturationThreshold, extraWhiteMode)) {
+          data[i] = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
+          data[i + 3] = 0;
+          pushNeighbors(queue, x, y);
+        }
+      }
+    }
+
+    function pushNeighbors(queue, x, y) {
+      queue.push([x + 1, y]);
+      queue.push([x - 1, y]);
+      queue.push([x, y + 1]);
+      queue.push([x, y - 1]);
+    }
+
+    function isBackgroundColor(r, g, b, a, threshold, saturationThreshold, extraWhiteMode) {
+      if (a < 12) return true;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const delta = max - min;
+      const saturation = max === 0 ? 0 : delta / max;
+      const brightness = max;
+
+      if (brightness >= threshold && saturation <= saturationThreshold) {
+        return true;
+      }
+
+      if (r >= 205 && g >= 205 && b >= 205 && saturation <= Math.max(0.18, saturationThreshold)) {
+        return true;
+      }
+
+      if (extraWhiteMode) {
+        if (r >= 245 && g >= 245 && b >= 245) return true;
+      }
+
+      return false;
+    }
+
+    function findNonTransparentBounds(imageData, width, height) {
+      const data = imageData.data;
+      let minX = width, minY = height, maxX = -1, maxY = -1;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          if (data[i + 3] > 0) {
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (maxX < 0 || maxY < 0) return null;
+
+      return {
+        x: minX,
+        y: minY,
+        width: maxX - minX + 1,
+        height: maxY - minY + 1
+      };
+    }
+
+    function normalizeAlpha(imageData, alphaCutoff) {
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < alphaCutoff) {
+          data[i] = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
+          data[i + 3] = 0;
+        } else {
+          data[i + 3] = 255;
+        }
+      }
+    }
+
+    function quantizeColors(imageData, maxColors) {
+      const data = imageData.data;
+      const pixels = [];
+
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 0) {
+          pixels.push({
+            r: data[i],
+            g: data[i + 1],
+            b: data[i + 2],
+            index: i
+          });
+        }
+      }
+
+      if (pixels.length === 0) return;
+
+      const palette = medianCutPalette(pixels, maxColors);
+
+      for (const p of pixels) {
+        const nearest = findNearestColor(p, palette);
+        data[p.index] = nearest.r;
+        data[p.index + 1] = nearest.g;
+        data[p.index + 2] = nearest.b;
+        data[p.index + 3] = 255;
+      }
+    }
+
+    function medianCutPalette(pixels, maxColors) {
+      let boxes = [pixels];
+
+      while (boxes.length < maxColors) {
+        boxes.sort((a, b) => colorRange(b) - colorRange(a));
+        const box = boxes.shift();
+
+        if (!box || box.length <= 1) {
+          if (box) boxes.push(box);
+          break;
+        }
+
+        const channel = widestChannel(box);
+        box.sort((p1, p2) => p1[channel] - p2[channel]);
+
+        const mid = Math.floor(box.length / 2);
+        const left = box.slice(0, mid);
+        const right = box.slice(mid);
+
+        if (left.length > 0) boxes.push(left);
+        if (right.length > 0) boxes.push(right);
+      }
+
+      return boxes.map(avgColor);
+    }
+
+    function widestChannel(box) {
+      let minR = 255, minG = 255, minB = 255;
+      let maxR = 0, maxG = 0, maxB = 0;
+
+      for (const p of box) {
+        if (p.r < minR) minR = p.r;
+        if (p.g < minG) minG = p.g;
+        if (p.b < minB) minB = p.b;
+        if (p.r > maxR) maxR = p.r;
+        if (p.g > maxG) maxG = p.g;
+        if (p.b > maxB) maxB = p.b;
+      }
+
+      const rRange = maxR - minR;
+      const gRange = maxG - minG;
+      const bRange = maxB - minB;
+
+      if (rRange >= gRange && rRange >= bRange) return "r";
+      if (gRange >= rRange && gRange >= bRange) return "g";
+      return "b";
+    }
+
+    function colorRange(box) {
+      let minR = 255, minG = 255, minB = 255;
+      let maxR = 0, maxG = 0, maxB = 0;
+
+      for (const p of box) {
+        minR = Math.min(minR, p.r);
+        minG = Math.min(minG, p.g);
+        minB = Math.min(minB, p.b);
+        maxR = Math.max(maxR, p.r);
+        maxG = Math.max(maxG, p.g);
+        maxB = Math.max(maxB, p.b);
+      }
+
+      return Math.max(maxR - minR, maxG - minG, maxB - minB);
+    }
+
+    function avgColor(box) {
+      let r = 0, g = 0, b = 0;
+      for (const p of box) {
+        r += p.r; g += p.g; b += p.b;
+      }
+      const n = box.length || 1;
+      return {
+        r: Math.round(r / n),
+        g: Math.round(g / n),
+        b: Math.round(b / n)
+      };
+    }
+
+    function findNearestColor(pixel, palette) {
+      let best = palette[0];
+      let bestDist = Infinity;
+
+      for (const c of palette) {
+        const dr = pixel.r - c.r;
+        const dg = pixel.g - c.g;
+        const db = pixel.b - c.b;
+        const dist = dr * dr + dg * dg + db * db;
+
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = c;
+        }
+      }
+
+      return best;
+    }
+
+    function blockifyImageData(imageData, blockSize) {
+      if (blockSize <= 1) return;
+
+      const data = imageData.data;
+      const width = imageData.width;
+      const height = imageData.height;
+
+      for (let by = 0; by < height; by += blockSize) {
+        for (let bx = 0; bx < width; bx += blockSize) {
+          let rSum = 0, gSum = 0, bSum = 0, aSum = 0, count = 0;
+
+          for (let y = by; y < Math.min(by + blockSize, height); y++) {
+            for (let x = bx; x < Math.min(bx + blockSize, width); x++) {
+              const i = (y * width + x) * 4;
+              const a = data[i + 3];
+              if (a > 0) {
+                rSum += data[i];
+                gSum += data[i + 1];
+                bSum += data[i + 2];
+                aSum += a;
+                count++;
+              }
+            }
+          }
+
+          let finalR = 0, finalG = 0, finalB = 0, finalA = 0;
+          if (count > 0) {
+            finalR = Math.round(rSum / count);
+            finalG = Math.round(gSum / count);
+            finalB = Math.round(bSum / count);
+            finalA = Math.round(aSum / count);
+          }
+
+          for (let y = by; y < Math.min(by + blockSize, height); y++) {
+            for (let x = bx; x < Math.min(bx + blockSize, width); x++) {
+              const i = (y * width + x) * 4;
+              data[i] = finalR;
+              data[i + 1] = finalG;
+              data[i + 2] = finalB;
+              data[i + 3] = finalA;
+            }
+          }
+        }
+      }
+    }
+
+    function updateStats() {
+      const imageData = ctx.getImageData(0, 0, 64, 64);
+      const data = imageData.data;
+
+      let solid = 0;
+      let semi = 0;
+      const colors = new Set();
+
+      for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3];
+        if (a > 0) {
+          solid++;
+          colors.add(`${data[i]},${data[i + 1]},${data[i + 2]},${a}`);
+        }
+        if (a > 0 && a < 255) semi++;
+      }
+
+      realOutputSize.textContent = `${outputCanvas.width} × ${outputCanvas.height}`;
+      solidPixelCount.textContent = solid;
+      solidColorCount.textContent = colors.size;
+      semiAlphaCount.textContent = semi;
+
+      if (outputCanvas.width === 64 && outputCanvas.height === 64 && semi === 0) {
+        alphaCheck.textContent = "通过";
+        alphaCheck.className = "info-value ok";
+      } else {
+        alphaCheck.textContent = "需检查";
+        alphaCheck.className = "info-value warning";
+      }
+
+      if (semi > 0) {
+        semiAlphaCount.className = "info-value warning";
+      } else {
+        semiAlphaCount.className = "info-value ok";
+      }
+    }
+
+    function download64Image() {
+      if (outputCanvas.width !== 64 || outputCanvas.height !== 64) {
+        alert("输出画布不是 64×64，请重新处理。");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.download = `${safeFileName(originalFileName)}_64x64.png`;
+      link.href = outputCanvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function download720Image() {
+      const exportCanvas = document.createElement("canvas");
+      exportCanvas.width = 720;
+      exportCanvas.height = 720;
+
+      const exportCtx = exportCanvas.getContext("2d");
+      setSmoothing(exportCtx, false);
+      exportCtx.clearRect(0, 0, 720, 720);
+
+      const scale = 11;
+      const innerSize = 64 * scale; // 704
+      const offset = (720 - innerSize) / 2; // 8
+
+      exportCtx.drawImage(
+        outputCanvas,
+        0,
+        0,
+        64,
+        64,
+        offset,
+        offset,
+        innerSize,
+        innerSize
+      );
+
+      const link = document.createElement("a");
+      link.download = `${safeFileName(originalFileName)}_720px.png`;
+      link.href = exportCanvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function safeFileName(name) {
+      return name
+        .replace(/[\\/:*?"<>|]/g, "_")
+        .replace(/\s+/g, "_")
+        .trim() || "texture";
+    }
+  </script>
+</body>
+</html>
