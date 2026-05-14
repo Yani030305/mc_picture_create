@@ -130,6 +130,43 @@
       object-fit: contain;
     }
 
+    .image-preview-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .reupload-btn {
+      background: linear-gradient(180deg, #6b8e23 0%, #556b2f 50%, #4a5d23 100%);
+      border: 3px solid #3d5a1a;
+      color: #fff;
+      padding: 8px 16px;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.3),
+        inset 0 -2px 0 rgba(0,0,0,0.3),
+        0 3px 0 #2d4012;
+      transition: all 0.1s;
+    }
+
+    .reupload-btn:hover {
+      background: linear-gradient(180deg, #7cb342 0%, #6b8e23 50%, #556b2f 100%);
+    }
+
+    .reupload-btn:active {
+      box-shadow:
+        inset 0 2px 0 rgba(0,0,0,0.3),
+        inset 0 -2px 0 rgba(255,255,255,0.3),
+        0 1px 0 #2d4012;
+      transform: translateY(2px);
+    }
+
     .preview-stack {
       display: flex;
       flex-direction: column;
@@ -384,7 +421,10 @@
             <p>支持 PNG / JPG / WEBP / GIF</p>
             <p style="font-size: 12px;">建议上传单个食物主体，背景越简单越好</p>
           </div>
-          <img id="originalImage" class="hidden" alt="原图预览" />
+          <div class="image-preview-wrapper">
+            <img id="originalImage" class="hidden" alt="原图预览" />
+            <button id="reuploadBtn" class="reupload-btn hidden">重新上传</button>
+          </div>
         </div>
 
         <div class="info-grid">
@@ -506,8 +546,8 @@
           <label class="control-label">像素块大小 Blockify</label>
           <select id="blockSizeSelect">
             <option value="1">1×1：保留 64×64 原像素</option>
-            <option value="2">2×2：轻度色块化</option>
-            <option value="4" selected>4×4：推荐，强制色块化</option>
+            <option value="2" selected>2×2：轻度色块化</option>
+            <option value="4">4×4：推荐，强制色块化</option>
             <option value="8">8×8：极简图标风</option>
           </select>
           <div class="hint">2×2 或 4×4 更接近“一个格子一个纯色块”的视觉效果。</div>
@@ -536,9 +576,9 @@
           </label>
           <select id="colorCountSelect">
             <option value="8">8 色</option>
-            <option value="16" selected>16 色</option>
+            <option value="16">16 色</option>
             <option value="24">24 色</option>
-            <option value="32">32 色</option>
+            <option value="32" selected>32 色</option>
             <option value="64">64 色</option>
           </select>
           <div class="hint">颜色越少越像贴图，但细节会损失。</div>
@@ -565,6 +605,7 @@
     const fileInput = document.getElementById("fileInput");
     const dropZone = document.getElementById("dropZone");
     const originalImg = document.getElementById("originalImage");
+    const reuploadBtn = document.getElementById("reuploadBtn");
 
     const outputCanvas = document.getElementById("outputCanvas");
     const ctx = outputCanvas.getContext("2d", { willReadFrequently: true });
@@ -667,6 +708,7 @@
     downloadBtn.addEventListener("click", download64Image);
     download720Btn.addEventListener("click", download720Image);
     reprocessBtn.addEventListener("click", processImage);
+    reuploadBtn.addEventListener("click", () => fileInput.click());
 
     toggleGridBtn.addEventListener("click", () => {
       showGrid = !showGrid;
@@ -691,6 +733,7 @@
           originalImage = img;
           originalImg.src = img.src;
           originalImg.classList.remove("hidden");
+          reuploadBtn.classList.remove("hidden");
           dropZone.classList.add("hidden");
           originalSize.textContent = `${img.naturalWidth} × ${img.naturalHeight}`;
           processImage();
@@ -913,6 +956,7 @@
 
       originalImg.src = "";
       originalImg.classList.add("hidden");
+      reuploadBtn.classList.add("hidden");
       dropZone.classList.remove("hidden");
 
       originalSize.textContent = "-- × --";
